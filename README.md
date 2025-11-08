@@ -1,77 +1,59 @@
 # Code Switch
 
-AI relay manager for Claude & Codex providers.  
-Builds with [Wails 3](https://v3.wails.io).
+AI Relay 管理工具，集中管理 Claude & Codex 供应商、热力墙与请求日志。基于 [Wails 3](https://v3.wails.io)。
 
-## Prerequisites
+## 预览
+![亮色主界面](resources/images/code-switch.png)
+![暗色主界面](resources/images/code-swtich-dark.png)
+![日志亮色](resources/images/code-switch-logs.png)
+![日志暗色](resources/images/code-switch-logs-dark.png)
 
+## 开发准备
 - Go 1.24+
 - Node.js 18+
-- npm / pnpm / yarn (project uses npm scripts)
-- Wails 3 CLI (`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`)
+- npm / pnpm / yarn
+- Wails 3 CLI：`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`
 
-## Development
-
+## 开发运行
 ```bash
 wails3 task dev
 ```
 
-This installs frontend deps, runs the Vite dev server and Go backend in watch mode.
-
-## Build
-
-Before building, ensure the desktop bundle metadata (company, product name, etc.) is synchronized:
-
-```bash
-# Update build assets (Info.plist, icons, etc.) after editing build/config.yml
-wails3 task common:update:build-assets
-
-# Produce binaries + .app bundle
-wails3 task build
-```
-
-The macOS app bundle is generated at `./bin/codeswitch.app`.
-
-### Cross-compile (macOS ➜ Windows)
-
-1. Install mingw-w64:
-   ```bash
-   brew install mingw-w64
-   ```
-2. Update build assets (if you changed `build/config.yml`):
+## 构建流程
+1. 同步 build metadata：
    ```bash
    wails3 task common:update:build-assets
    ```
-3. Build Windows binaries from macOS using the Windows task:
+2. 打包 macOS `.app`：
+   ```bash
+   wails3 task package
+   ```
+
+### 交叉编译 Windows (macOS 环境)
+1. 安装 `mingw-w64`：
+   ```bash
+   brew install mingw-w64
+   ```
+2. 运行 Windows 任务：
    ```bash
    wails3 task windows:build ARCH=amd64
+   # 生成安装器
+   wails3 task windows:package ARCH=amd64
    ```
-   - Output: `./bin/codeswitch.exe` + supporting files.
-   - To produce the NSIS installer, run the `windows:package` task with the same environment variables.
 
-### Publish a Release
+## 发布
+脚本 `scripts/publish_release.sh` 将自动打包并上传以下资产：
+- `codeswitch-macos.zip`
+- `codeswitch-arm64-installer.exe`
+- `codeswitch.exe`
 
-Use the helper script to build and upload assets to GitHub Releases (requires the `gh` CLI):
-
-```bash
-# Build macOS .app + Windows installer and publish (defaults to v0.1.0 / RELEASE_NOTES.md)
-scripts/publish_release.sh
-```
-
-The script:
-- runs `wails3 task common:update:build-assets`
-- builds macOS (`bin/codeswitch.app`) via `wails3 task package`
-- cross-compiles + packages Windows installer (`bin/codeswitch-*-installer.exe`) via `windows:package`
-- zips `codeswitch.app` into `codeswitch-macos.zip`, then uploads zip + installer to GitHub Releases
-
-Want to run the steps manually? Execute:
-
+若要手动发布，可执行：
 ```bash
 wails3 task package
 wails3 task windows:package ARCH=amd64
-ditto -c -k --sequesterRsrc --keepParent bin/codeswitch.app bin/codeswitch-macos.zip
+scripts/publish_release.sh
 ```
 
-## Packaging Notes
-
-If `codeswitch.app` fails to open because the executable is “missing”, it usually means the Info.plist was out of sync. Re-run the `common:update:build-assets` task, then rebuild as shown above.
+## 常见问题
+- 若 `.app` 无法打开，先执行 `wails3 task common:update:build-assets` 后再构建。
+- macOS 交叉编译需要终端拥有完全磁盘访问权限，否则 `~/Library/Caches/go-build` 会报 *operation not permitted*。
