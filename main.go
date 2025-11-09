@@ -68,6 +68,7 @@ func main() {
 	codexSettings := services.NewCodexSettingsService(providerRelay.Addr())
 	logService := services.NewLogService()
 	appSettings := services.NewAppSettingsService()
+	versionService := NewVersionService()
 
 	go func() {
 		if err := providerRelay.Start(); err != nil {
@@ -92,6 +93,7 @@ func main() {
 			application.NewService(codexSettings),
 			application.NewService(logService),
 			application.NewService(appSettings),
+			application.NewService(versionService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

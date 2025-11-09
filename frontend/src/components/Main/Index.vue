@@ -2,7 +2,12 @@
   <div class="main-shell">
     <div class="global-actions">
       <p class="global-eyebrow">{{ t('components.main.hero.eyebrow') }}</p>
-      <button class="ghost-icon" :aria-label="t('components.main.controls.github')" @click="openGitHub">
+      <button
+        class="ghost-icon github-icon"
+        :class="{ 'github-upgrade': hasUpdateAvailable }"
+        :aria-label="hasUpdateAvailable ? t('components.main.controls.githubUpdate') : t('components.main.controls.github')"
+        @click="openGitHub"
+      >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M9 19c-4.5 1.5-4.5-2.5-6-3m12 5v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0018 3.77 5.07 5.07 0 0017.91 1S16.73.65 14 2.48a13.38 13.38 0 00-5 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 3.77a5.44 5.44 0 00-1.5 3.76c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"
@@ -389,6 +394,7 @@ import BaseInput from '../common/BaseInput.vue'
 import { LoadProviders, SaveProviders } from '../../../bindings/codeswitch/services/providerservice'
 import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
 import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
+import { fetchCurrentVersion } from '../../services/version'
 import { fetchAppSettings, type AppSettings } from '../../services/appSettings'
 import { getCurrentTheme, setTheme, type ThemeMode } from '../../utils/ThemeManager'
 import { useRouter } from 'vue-router'
@@ -403,6 +409,8 @@ const resolvedTheme = computed(() => {
   return themeMode.value
 })
 const themeIcon = computed(() => (resolvedTheme.value === 'dark' ? 'moon' : 'sun'))
+const releasePageUrl = 'https://github.com/daodao97/code-switch/releases'
+const releaseApiUrl = 'https://api.github.com/repos/daodao97/code-switch/releases/latest'
 
 const USAGE_WEEKS = DEFAULT_USAGE_WEEKS
 const usageHeatmap = ref<UsageHeatmapWeek[]>(generateFallbackUsageHeatmap(USAGE_WEEKS))
@@ -425,7 +433,10 @@ const providerStatsLoading = reactive<Record<ProviderTab, boolean>>({
   codex: false,
 } as Record<ProviderTab, boolean>)
 let providerStatsTimer: number | undefined
+let updateTimer: number | undefined
 const showHeatmap = ref(true)
+const appVersion = ref('')
+const hasUpdateAvailable = ref(false)
 
 const intensityClass = (value: number) => `gh-level-${value}`
 
@@ -547,11 +558,67 @@ const loadAppSettings = async () => {
   }
 }
 
+const checkForUpdates = async () => {
+  try {
+    const version = await fetchCurrentVersion()
+    appVersion.value = version || ''
+  } catch (error) {
+    console.error('failed to load app version', error)
+  }
+
+  try {
+    const resp = await fetch(releaseApiUrl, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+      },
+    })
+    if (!resp.ok) {
+      return
+    }
+    const data = await resp.json()
+    const latestTag = data?.tag_name ?? ''
+    if (latestTag && compareVersions(appVersion.value || '0.0.0', latestTag) < 0) {
+      hasUpdateAvailable.value = true
+    }
+  } catch (error) {
+    console.error('failed to fetch release info', error)
+  }
+}
+
 const handleAppSettingsUpdated = () => {
   void loadAppSettings()
 }
 
+const startUpdateTimer = () => {
+  stopUpdateTimer()
+  updateTimer = window.setInterval(() => {
+    void checkForUpdates()
+  }, 60 * 60 * 1000)
+}
+
+const stopUpdateTimer = () => {
+  if (updateTimer) {
+    clearInterval(updateTimer)
+    updateTimer = undefined
+  }
+}
+
 const normalizeProviderKey = (value: string) => value?.trim().toLowerCase() ?? ''
+
+const normalizeVersion = (value: string) => value.replace(/^v/i, '').trim()
+
+const compareVersions = (current: string, remote: string) => {
+  const curParts = normalizeVersion(current).split('.').map((part) => parseInt(part, 10) || 0)
+  const remoteParts = normalizeVersion(remote).split('.').map((part) => parseInt(part, 10) || 0)
+  const maxLen = Math.max(curParts.length, remoteParts.length)
+  for (let i = 0; i < maxLen; i++) {
+    const cur = curParts[i] ?? 0
+    const rem = remoteParts[i] ?? 0
+    if (cur === rem) continue
+    return cur < rem ? -1 : 1
+  }
+  return 0
+}
 
 const loadUsageHeatmap = async () => {
   try {
@@ -717,13 +784,16 @@ onMounted(async () => {
   await Promise.all(providerTabIds.map(refreshProxyState))
   await Promise.all(providerTabIds.map((tab) => loadProviderStats(tab)))
   await loadAppSettings()
+  await checkForUpdates()
   startProviderStatsTimer()
+  startUpdateTimer()
   window.addEventListener('app-settings-updated', handleAppSettingsUpdated)
 })
 
 onUnmounted(() => {
   stopProviderStatsTimer()
   window.removeEventListener('app-settings-updated', handleAppSettingsUpdated)
+  stopUpdateTimer()
 })
 
 const selectedIndex = ref(0)
@@ -752,8 +822,7 @@ const toggleTheme = () => {
 }
 
 const openGitHub = () => {
-  const url = 'https://github.com/daodao97/code-switch'
-  Browser.OpenURL(url).catch(() => {
+  Browser.OpenURL(releasePageUrl).catch(() => {
     console.error('failed to open github')
   })
 }

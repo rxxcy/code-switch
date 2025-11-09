@@ -47,6 +47,7 @@
       },
       "controls": {
         "github": "Open project GitHub",
+        "githubUpdate": "Open GitHub (update available)",
         "theme": "Toggle theme",
         "settings": "Open settings"
       },

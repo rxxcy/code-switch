@@ -19,6 +19,8 @@ if [ ! -f "$NOTES" ]; then
   exit 1
 fi
 
+perl -0pi -e "s/const\\s+AppVersion\\s*=\\s*\"[^\"]*\"/const AppVersion = \"$TAG\"/" version_service.go
+
 wails3 task common:update:build-assets
 wails3 task package ${BUILD_OPTS:-}
 

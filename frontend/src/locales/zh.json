@@ -48,6 +48,7 @@
       },
       "controls": {
         "github": "打开 GitHub",
+        "githubUpdate": "打开 GitHub（发现新版本）",
         "theme": "切换主题",
         "settings": "打开设置"
       },
