@@ -12,7 +12,7 @@ const (
 	claudeSettingsDir      = ".claude"
 	claudeSettingsFileName = "settings.json"
 	claudeBackupFileName   = "cc-studio.back.settings.json"
-	claudeAuthTokenValue   = "ai-code-stuido"
+	claudeAuthTokenValue   = "code-switch"
 )
 
 type ClaudeProxyStatus struct {

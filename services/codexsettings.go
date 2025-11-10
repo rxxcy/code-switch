@@ -18,10 +18,10 @@ const (
 	codexBackupAuthName   = "cc-studio.back.auth.json"
 	codexPreferredAuth    = "apikey"
 	codexDefaultModel     = "gpt-5-codex"
-	codexProviderKey      = "ai-code-studio"
+	codexProviderKey      = "code-switch"
 	codexEnvKey           = "OPENAI_API_KEY"
 	codexWireAPI          = "responses"
-	codexTokenValue       = "ai-code-stuido"
+	codexTokenValue       = "code-switch"
 )
 
 type CodexSettingsService struct {
