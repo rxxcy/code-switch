@@ -14,6 +14,18 @@ cp -r "${APP_BINARY}" "${APP_DIR}/usr/bin/"
 cp "${ICON_PATH}" "${APP_DIR}/"
 cp "${DESKTOP_FILE}" "${APP_DIR}/"
 
+# 复制 WebKit2GTK 辅助进程
+echo "Copying WebKit2GTK auxiliary processes..."
+WEBKIT_LIB_DIR="/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1"
+if [ -d "${WEBKIT_LIB_DIR}" ]; then
+    mkdir -p "${APP_DIR}/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1"
+    cp -r "${WEBKIT_LIB_DIR}"/* "${APP_DIR}/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/"
+    echo "✓ WebKit auxiliary processes copied"
+else
+    echo "⚠ Warning: WebKit library directory not found at ${WEBKIT_LIB_DIR}"
+    echo "  AppImage may fail to run if WebKit is required"
+fi
+
 if [[ $(uname -m) == *x86_64* ]]; then
     # Download linuxdeploy and make it executable
     wget -q -4 -N https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
